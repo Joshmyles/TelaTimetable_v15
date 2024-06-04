@@ -1,0 +1,381 @@
+<section id="section1" class="flex mt-1 justify-center items-center gap-6">
+    <div><app-school-filter (SelectedSchoolDetailEvent)="filteredSchoolDetails = $event"></app-school-filter></div>
+
+    <div><app-filter-school-details [filteredSchoolDetails]="filteredSchoolDetails"></app-filter-school-details></div>
+</section>
+
+
+<section id="table">
+
+    <mat-tab-group mat-align-tabs="start" (selectedTabChange)="selectedTabChange($event)">
+        <mat-tab [label]="schoolClass.name" *ngFor="let schoolClass of filteredSchoolDetails?.schoolClasses||[]">
+            <ng-template matTabContent>
+                <div class="flex justify-between items-center mx-4 mt-1">
+                    <div class="flex space-x-2 items-center">
+                        <app-start-end-break-lunch-time
+                            (classStartEndBreakLunchTimeData)="classStartEndBreakLunchTime = $event"
+                            (isInValid)="isStartEndBreakLunchTimeInValid = $event"
+                            [selectedLunchTimes]="selectedLunchTimes"></app-start-end-break-lunch-time>
+
+                        <div>
+                            <button type="button" mat-raised-button color="primary"
+                                [disabled]="this.filteredSchoolDetails.schoolClasses.length == 0 || isStartEndBreakLunchTimeInValid || isSaving"
+                                (click)="generateTimetable()">Generate</button>
+                        </div>
+                    </div>
+
+                    <div class="items-center">
+                        <div class="flex space-x-6 justify-end mr-8">
+
+                            <button mat-icon-button color="primary"
+                                [disabled]="isSaving|| startEndTimeRanges.length <=0 ||newTimetable.lessons.length < (startEndTimeRanges.length * 5)"
+                                [matTooltip]="'save timetableClass timetable changes'"
+                                (click)="saveUpdateClassTimetable()">
+                                <mat-icon>check</mat-icon>
+                            </button>
+
+                            <button mat-icon-button color="primary" [disabled]="isSaving"
+                                [matTooltip]="'export timetableClass timetable'">
+                                <mat-icon>system_update_alt</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <mat-progress-bar mode="indeterminate" *ngIf="isSaving"></mat-progress-bar>
+
+                <table class="border-separate border-spacing-2 border border-slate-400 w-full">
+
+                    <caption class="caption-top text-xl p-2">
+                        {{schoolClass.name|titlecase}} TimeTable
+                    </caption>
+
+                    <thead>
+                        <tr>
+                            <th class="border border-slate-600 w-36">No.</th>
+                            <th class="border border-slate-600 w-36">Time</th>
+                            <th class="border border-slate-600">Monday</th>
+                            <th class="border border-slate-600">Tuesday</th>
+                            <th class="border border-slate-600">Wednesday</th>
+                            <th class="border border-slate-600">Thursday</th>
+                            <th class="border border-slate-600">Friday</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngFor="let startEndTimeRange of startEndTimeRanges ;index as i" class="text-center">
+                            <td class="border border-slate-200 w-36">{{i+1}}</td>
+
+                            <!-- there are many lessons with same time but different days-->
+                            <td class="border border-slate-200">
+                                {{startEndTimeRange.startTime}}-{{startEndTimeRange.endTime}}</td>
+
+
+                            <!--monday-->
+                            <td class="border border-slate-200 px-1">
+                                <div class="flex flex-col space-y-2">
+                                    <span
+                                        *ngIf="getLesson(startEndTimeRange , DayOfWeek.MONDAY , schoolClass) as lesson">
+                                        {{lesson.subject?.code}}
+                                    </span>
+
+                                    <mat-form-field appearance="outline">
+                                        <mat-label> Select Subject</mat-label>
+                                        <input type="text" matInput [formControl]="subjectControl"
+                                            [matAutocomplete]="monSubAuto">
+                                        <button matSuffix mat-icon-button aria-label="Clear">
+                                            <mat-icon>arrow_drop_down</mat-icon>
+                                        </button>
+
+                                        <mat-autocomplete #monSubAuto="matAutocomplete"
+                                            [displayWith]="displaySubjectCode"
+                                            (optionSelected)="onSubjectChange2($event , startEndTimeRange , DayOfWeek.MONDAY , schoolClass)">
+                                            <mat-option *ngFor="let subject of filteredSubjectOptions$ | async"
+                                                [value]="subject">
+                                                {{subject.code}}
+                                            </mat-option>
+                                        </mat-autocomplete>
+                                    </mat-form-field>
+                                </div>
+
+
+                                <div class="text-lg text-slate-500">
+                                    <div class="flex flex-col space-y-2">
+
+                                        <span
+                                            *ngIf="getLesson(startEndTimeRange , DayOfWeek.MONDAY , schoolClass) as lesson">
+                                            {{lesson.schoolStaff?.firstName}} {{lesson.schoolStaff?.lastName}}
+                                        </span>
+
+                                        <mat-form-field appearance="outline">
+                                            <mat-label> Select Teacher</mat-label>
+                                            <input type="text" matInput [formControl]="staffControl"
+                                                [matAutocomplete]="monStaffAuto">
+                                            <button matSuffix mat-icon-button aria-label="Clear">
+                                                <mat-icon>arrow_drop_down</mat-icon>
+                                            </button>
+
+                                            <mat-autocomplete #monStaffAuto="matAutocomplete"
+                                                [displayWith]="displayStaffName"
+                                                (optionSelected)="onStaffChange2($event , startEndTimeRange , DayOfWeek.MONDAY , schoolClass)">
+                                                <mat-option *ngFor="let staff of filteredStaffOptions$ | async"
+                                                    [value]="staff">
+                                                    {{staff.firstName}} {{staff.lastName}}
+                                                </mat-option>
+                                            </mat-autocomplete>
+                                        </mat-form-field>
+
+                                    </div>
+                                </div>
+
+                            </td>
+
+                            <!--tuesday-->
+                            <td class="border border-slate-200 px-1">
+                                <div class="flex flex-col space-y-2">
+                                    <span
+                                        *ngIf="getLesson(startEndTimeRange , DayOfWeek.TUESDAY , schoolClass) as lesson">
+                                        {{lesson.subject?.code}}
+                                    </span>
+
+                                    <mat-form-field appearance="outline">
+                                        <mat-label> Select Subject</mat-label>
+                                        <input type="text" matInput [formControl]="subjectControl"
+                                            [matAutocomplete]="tueSubAuto">
+                                        <button matSuffix mat-icon-button aria-label="Clear">
+                                            <mat-icon>arrow_drop_down</mat-icon>
+                                        </button>
+
+                                        <mat-autocomplete #tueSubAuto="matAutocomplete"
+                                            [displayWith]="displaySubjectCode"
+                                            (optionSelected)="onSubjectChange2($event , startEndTimeRange , DayOfWeek.TUESDAY , schoolClass)">
+                                            <mat-option *ngFor="let subject of filteredSubjectOptions$ | async"
+                                                [value]="subject">
+                                                {{subject.code}}
+                                            </mat-option>
+                                        </mat-autocomplete>
+                                    </mat-form-field>
+                                </div>
+
+
+                                <div class="text-lg text-slate-500">
+                                    <div class="flex flex-col space-y-2">
+                                        <span
+                                            *ngIf="getLesson(startEndTimeRange , DayOfWeek.TUESDAY , schoolClass) as lesson">
+                                            {{lesson.schoolStaff?.firstName}} {{lesson.schoolStaff?.lastName}}
+                                        </span>
+
+                                        <mat-form-field appearance="outline">
+                                            <mat-label> Select Teacher</mat-label>
+                                            <input type="text" matInput [formControl]="staffControl"
+                                                [matAutocomplete]="tueStaffAuto">
+                                            <button matSuffix mat-icon-button aria-label="Clear">
+                                                <mat-icon>arrow_drop_down</mat-icon>
+                                            </button>
+
+                                            <mat-autocomplete #tueStaffAuto="matAutocomplete"
+                                                [displayWith]="displayStaffName"
+                                                (optionSelected)="onStaffChange2($event , startEndTimeRange , DayOfWeek.TUESDAY , schoolClass)">
+                                                <mat-option *ngFor="let staff of filteredStaffOptions$ | async"
+                                                    [value]="staff">
+                                                    {{staff.firstName}} {{staff.lastName}}
+                                                </mat-option>
+                                            </mat-autocomplete>
+                                        </mat-form-field>
+
+                                    </div>
+                                </div>
+
+                            </td>
+
+                            <!--WEDNESDAY-->
+                            <td class="border border-slate-200 px-1">
+                                <div class="flex flex-col space-y-2">
+                                    <span
+                                        *ngIf="getLesson(startEndTimeRange , DayOfWeek.WEDNESDAY , schoolClass) as lesson">
+                                        {{lesson.subject?.code}}
+                                    </span>
+
+                                    <mat-form-field appearance="outline">
+                                        <mat-label> Select Subject</mat-label>
+                                        <input type="text" matInput [formControl]="subjectControl"
+                                            [matAutocomplete]="wedSubAuto">
+                                        <button matSuffix mat-icon-button aria-label="Clear">
+                                            <mat-icon>arrow_drop_down</mat-icon>
+                                        </button>
+
+                                        <mat-autocomplete #wedSubAuto="matAutocomplete"
+                                            [displayWith]="displaySubjectCode"
+                                            (optionSelected)="onSubjectChange2($event , startEndTimeRange , DayOfWeek.WEDNESDAY , schoolClass)">
+                                            <mat-option *ngFor="let subject of filteredSubjectOptions$ | async"
+                                                [value]="subject">
+                                                {{subject.code}}
+                                            </mat-option>
+                                        </mat-autocomplete>
+                                    </mat-form-field>
+
+
+                                </div>
+
+
+                                <div class="text-lg text-slate-500">
+                                    <div class="flex flex-col space-y-2">
+                                        <span
+                                            *ngIf="getLesson(startEndTimeRange , DayOfWeek.WEDNESDAY , schoolClass) as lesson">
+                                            {{lesson.schoolStaff?.firstName}} {{lesson.schoolStaff?.lastName}}
+                                        </span>
+
+                                        <mat-form-field appearance="outline">
+                                            <mat-label> Select Teacher</mat-label>
+                                            <input type="text" matInput [formControl]="staffControl"
+                                                [matAutocomplete]="wedStaffAuto">
+                                            <button matSuffix mat-icon-button aria-label="Clear">
+                                                <mat-icon>arrow_drop_down</mat-icon>
+                                            </button>
+
+                                            <mat-autocomplete #wedStaffAuto="matAutocomplete"
+                                                [displayWith]="displayStaffName"
+                                                (optionSelected)="onStaffChange2($event , startEndTimeRange , DayOfWeek.WEDNESDAY , schoolClass)">
+                                                <mat-option *ngFor="let staff of filteredStaffOptions$ | async"
+                                                    [value]="staff">
+                                                    {{staff.firstName}} {{staff.lastName}}
+                                                </mat-option>
+                                            </mat-autocomplete>
+                                        </mat-form-field>
+
+                                    </div>
+                                </div>
+
+                            </td>
+
+                            <!--THURSDAY-->
+                            <td class="border border-slate-200 px-1">
+                                <div class="flex flex-col space-y-2">
+                                    <span
+                                        *ngIf="getLesson(startEndTimeRange , DayOfWeek.THURSDAY , schoolClass) as lesson">
+                                        {{lesson.subject?.code}}
+                                    </span>
+
+
+                                    <mat-form-field appearance="outline">
+                                        <mat-label> Select Subject</mat-label>
+                                        <input type="text" matInput [formControl]="subjectControl"
+                                            [matAutocomplete]="thurSubAuto">
+                                        <button matSuffix mat-icon-button aria-label="Clear">
+                                            <mat-icon>arrow_drop_down</mat-icon>
+                                        </button>
+
+                                        <mat-autocomplete #thurSubAuto="matAutocomplete"
+                                            [displayWith]="displaySubjectCode"
+                                            (optionSelected)="onSubjectChange2($event , startEndTimeRange , DayOfWeek.THURSDAY , schoolClass)">
+                                            <mat-option *ngFor="let subject of filteredSubjectOptions$ | async"
+                                                [value]="subject">
+                                                {{subject.code}}
+                                            </mat-option>
+                                        </mat-autocomplete>
+                                    </mat-form-field>
+
+                                </div>
+
+
+                                <div class="text-lg text-slate-500">
+                                    <div class="flex flex-col space-y-2">
+                                        <span
+                                            *ngIf="getLesson(startEndTimeRange , DayOfWeek.THURSDAY , schoolClass) as lesson">
+                                            {{lesson.schoolStaff?.firstName}} {{lesson.schoolStaff?.lastName}}
+                                        </span>
+
+
+                                        <mat-form-field appearance="outline">
+                                            <mat-label> Select Teacher</mat-label>
+                                            <input type="text" matInput [formControl]="staffControl"
+                                                [matAutocomplete]="thurStaffAuto">
+                                            <button matSuffix mat-icon-button aria-label="Clear">
+                                                <mat-icon>arrow_drop_down</mat-icon>
+                                            </button>
+
+                                            <mat-autocomplete #thurStaffAuto="matAutocomplete"
+                                                [displayWith]="displayStaffName"
+                                                (optionSelected)="onStaffChange2($event , startEndTimeRange , DayOfWeek.THURSDAY , schoolClass)">
+                                                <mat-option *ngFor="let staff of filteredStaffOptions$ | async"
+                                                    [value]="staff">
+                                                    {{staff.firstName}} {{staff.lastName}}
+                                                </mat-option>
+                                            </mat-autocomplete>
+                                        </mat-form-field>
+
+
+                                    </div>
+                                </div>
+
+                            </td>
+
+                            <!--FRIDAY-->
+                            <td class="border border-slate-200 px-1">
+                                <div class="flex flex-col space-y-2">
+                                    <span
+                                        *ngIf="getLesson(startEndTimeRange , DayOfWeek.FRIDAY , schoolClass) as lesson">
+                                        {{lesson.subject?.code}}
+                                    </span>
+
+                                    <mat-form-field appearance="outline">
+                                        <mat-label> Select Subject</mat-label>
+                                        <input type="text" matInput [formControl]="subjectControl"
+                                            [matAutocomplete]="friSubAuto">
+                                        <button matSuffix mat-icon-button aria-label="Clear">
+                                            <mat-icon>arrow_drop_down</mat-icon>
+                                        </button>
+
+                                        <mat-autocomplete #friSubAuto="matAutocomplete"
+                                            [displayWith]="displaySubjectCode"
+                                            (optionSelected)="onSubjectChange2($event , startEndTimeRange , DayOfWeek.FRIDAY , schoolClass)">
+                                            <mat-option *ngFor="let subject of filteredSubjectOptions$ | async"
+                                                [value]="subject">
+                                                {{subject.code}}
+                                            </mat-option>
+                                        </mat-autocomplete>
+                                    </mat-form-field>
+
+                                </div>
+
+
+                                <div class="text-lg text-slate-500">
+                                    <div class="flex flex-col space-y-2">
+                                        <span
+                                            *ngIf="getLesson(startEndTimeRange , DayOfWeek.FRIDAY , schoolClass) as lesson">
+                                            {{lesson.schoolStaff?.firstName}} {{lesson.schoolStaff?.lastName}}
+                                        </span>
+
+                                        <mat-form-field appearance="outline">
+                                            <mat-label> Select Teacher</mat-label>
+                                            <input type="text" matInput [formControl]="staffControl"
+                                                [matAutocomplete]="friStaffAuto">
+                                            <button matSuffix mat-icon-button aria-label="Clear">
+                                                <mat-icon>arrow_drop_down</mat-icon>
+                                            </button>
+
+                                            <mat-autocomplete #friStaffAuto="matAutocomplete"
+                                                [displayWith]="displayStaffName"
+                                                (optionSelected)="onStaffChange2($event , startEndTimeRange , DayOfWeek.FRIDAY , schoolClass)">
+                                                <mat-option *ngFor="let staff of filteredStaffOptions$ | async"
+                                                    [value]="staff">
+                                                    {{staff.firstName}} {{staff.lastName}}
+                                                </mat-option>
+                                            </mat-autocomplete>
+                                        </mat-form-field>
+
+                                    </div>
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </ng-template>
+        </mat-tab>
+
+    </mat-tab-group>
+
+</section>

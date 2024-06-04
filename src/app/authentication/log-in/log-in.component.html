@@ -1,0 +1,33 @@
+<div class="flex h-full justify-center items-center ">
+    <div class="flex flex-col w-1/4 shadow-md p-8">
+        <div class="flex flex-col justify-center items-center gap-2">
+            <img src="/assets/Coat_of_arms_of_Uganda.svg (2).png" class="w-20 h-20" alt="coat of arms" />
+            <div class="text-xl">MINISTRY OF EDUCATION AND SPORTS</div>
+            <div class="text-lg">TeLa System</div>
+        </div>
+
+        <mat-progress-bar mode="indeterminate" *ngIf="isLoading" class="my-1"></mat-progress-bar>
+
+        <form class="flex flex-col" [formGroup]="formGroup">
+            <mat-form-field appearance="fill">
+                <mat-label>Email</mat-label>
+                <input type="email" matInput placeholder="youremail@gmail.com" formControlName="username">
+                <mat-icon matSuffix>mail</mat-icon>
+            </mat-form-field>
+
+
+            <mat-form-field appearance="fill">
+                <mat-label>Password</mat-label>
+                <input [type]="showCPasswordText ? 'text' : 'password'" matInput formControlName="password">
+                <mat-icon matSuffix (click)="showCPasswordText = !showCPasswordText">{{showCPasswordText ?
+                    'visibility_off' : 'visibility'}}</mat-icon>
+            </mat-form-field>
+
+            <button mat-raised-button color="primary" (click)="login()"
+                [disabled]="formGroup.invalid || isLoading">Login</button>
+        </form>
+
+
+
+    </div>
+</div>
