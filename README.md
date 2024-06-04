@@ -1,4 +1,6 @@
-# TelaTimetableV15
+# TelaTimetable_v15
+
+Original Project from @Author - Wanfadger <https://github.com/Wanfadger>
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.2.11.
 
